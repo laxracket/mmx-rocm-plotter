@@ -1,0 +1,14 @@
+/build/
+*.o
+*.a
+*.so
+*.plot
+*.plot.tmp
+*.tmp
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+.idea/
+.vscode/
+*.user
