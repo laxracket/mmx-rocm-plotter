@@ -12,13 +12,15 @@ ROCm (HIP) plotter to create plots for the [MMX](https://github.com/madMAx43v3r/
 ## Build
 
 ```bash
-git submodule update --init --recursive   # if using submodules
 ./make_release.sh
 # or:
 mkdir -p build && cd build
 cmake -D CMAKE_BUILD_TYPE=Release -D HIP_DIR=/opt/rocm/lib/cmake/hip ..
+# On this system HIP config may be under /opt/rocm/core-7.14/lib/cmake/hip
 make -j$(nproc)
 ```
+
+Dependency sources (`vnx-base`, `libbech32`, `uint256_t`, `mad-direct-io`) are included in-tree.
 
 Binaries: `mmx_rocm_plot_k26` … `mmx_rocm_plot_k32`.
 
