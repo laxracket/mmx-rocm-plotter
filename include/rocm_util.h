@@ -59,7 +59,7 @@ uint64_t rocm_rotl_64(const uint64_t w, const uint32_t c) {
 	return (w << c) | (w >> (64 - c));
 }
 
-__global__ inline
+static __global__
 void memset_u32(uint32_t* data, const uint32_t value, const uint64_gpu count)
 {
 	const uint32_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -68,7 +68,7 @@ void memset_u32(uint32_t* data, const uint32_t value, const uint64_gpu count)
 	}
 }
 
-__global__ inline
+static __global__
 void memset_u64(uint64_gpu* data, const uint64_gpu value, const uint64_gpu count)
 {
 	const uint32_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -77,7 +77,7 @@ void memset_u64(uint64_gpu* data, const uint64_gpu value, const uint64_gpu count
 	}
 }
 
-__global__ inline
+static __global__
 void memset_u64_4(ulonglong4* data, const uint64_gpu value, const uint64_gpu count)
 {
 	const uint32_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -86,7 +86,7 @@ void memset_u64_4(ulonglong4* data, const uint64_gpu value, const uint64_gpu cou
 	}
 }
 
-__global__ inline
+static __global__
 void memcpy_u32(uint32_t* dst, const uint32_t* src, const uint64_gpu count)
 {
 	const uint32_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -95,7 +95,7 @@ void memcpy_u32(uint32_t* dst, const uint32_t* src, const uint64_gpu count)
 	}
 }
 
-__global__ inline
+static __global__
 void memcpy_u64(uint64_gpu* dst, const uint64_gpu* src, const uint64_gpu count)
 {
 	const uint32_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -104,7 +104,7 @@ void memcpy_u64(uint64_gpu* dst, const uint64_gpu* src, const uint64_gpu count)
 	}
 }
 
-__global__ inline
+static __global__
 void calc_offset_sum(uint32_t* offset_out, const uint32_t* count_in, const uint32_t width, const bool with_total)
 {
 	const int k = threadIdx.x;

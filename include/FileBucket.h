@@ -26,7 +26,7 @@ public:
 	std::atomic<uint64_t> total_bytes_written {0};
 
 	FileStore(const std::string& file_path, const size_t num_threads, const size_t max_pending, const bool use_direct_io)
-		:	use_direct_io(use_direct_io), file_path(file_path), num_threads(num_threads), max_pending(max_pending)
+		:	use_direct_io(use_direct_io), file_path(file_path), max_pending(max_pending)
 	{
 		auto* file = fopen(file_path.c_str(), "wb");
 		if(!file) {
@@ -241,7 +241,6 @@ private:
 	std::list<std::thread> write_threads;
 
 	const std::string file_path;
-	const size_t num_threads;
 	const size_t max_pending;
 
 };

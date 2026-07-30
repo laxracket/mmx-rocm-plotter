@@ -286,7 +286,7 @@ int _main(int argc, char** argv)
 		return -2;
 	}
 	int avail_devices = 0;
-	hipGetDeviceCount(&avail_devices);
+	hip_check(hipGetDeviceCount(&avail_devices));
 
 	if(device + num_devices > avail_devices) {
 		std::cout << "Invalid -r | --ndevices, not enough devices: " << avail_devices << std::endl;

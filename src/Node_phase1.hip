@@ -508,7 +508,7 @@ void Node::phase1()
 	Buffer<uint64_gpu>* PD_buf = new Buffer<uint64_gpu>[NSTREAMS];
 
 	for(int i = 0; i < NSTREAMS; ++i) {
-		hipSetDevice(device + i % num_devices);
+		hip_check(hipSetDevice(device + i % num_devices));
 
 		mem_buf[i].alloc(	hash_block_size * mem_size, MEM_TYPE_DEVICE);
 		key_buf[i].alloc(	hash_block_size * 16, MEM_TYPE_DEVICE);
@@ -544,7 +544,7 @@ void Node::phase1()
 
 		// start download threads
 		for(int k = 0; k < NSTREAMS; ++k) {
-			download_thread[k] = std::thread([this, k, C_buf, Y_buf, PD_buf, &result]() {
+			download_thread[k] = std::thread([this, k, C_buf, PD_buf, &result]() {
 				try {
 					for(uint32_t y = k; y < num_buckets_1; y += NSTREAMS)
 					{
@@ -580,7 +580,7 @@ void Node::phase1()
 			const auto k = y % NSTREAMS;
 			const auto stream = streams[k];
 
-			hipSetDevice(device + k % num_devices);
+			hip_check(hipSetDevice(device + k % num_devices));
 
 			hip_memset<uint32_t>(bucket_size_out[k], 0, stream);
 
@@ -625,7 +625,7 @@ void Node::phase1()
 			download_buffer(PD_buf[k], PD_out[k], max_entries_tmp * KBYTES, stream);
 			download_buffer(bucket_size_buf[k], bucket_size_out[k], stream);
 
-			hipEventRecord(download_event[y], stream);
+			hip_check(hipEventRecord(download_event[y], stream));
 
 			signal_barrier(stream_barrier[y]);
 		}
@@ -670,7 +670,7 @@ void Node::phase1()
 	Buffer<uint64_gpu>* PD1_buf = new Buffer<uint64_gpu>[NSTREAMS];
 
 	for(int i = 0; i < NSTREAMS; ++i) {
-		hipSetDevice(device + i % num_devices);
+		hip_check(hipSetDevice(device + i % num_devices));
 
 		num_matches[i].alloc(		1, MEM_TYPE_DEVICE);
 		bucket_size_2[i].alloc(		num_buckets_2, MEM_TYPE_DEVICE);
@@ -802,9 +802,8 @@ void Node::phase1()
 			const auto k = y % NSTREAMS;
 			const auto stream = streams[k];
 
-			const int key_size_2 = KSIZE - LOGBUCKETS - LOGBUCKETS2;
 
-			hipSetDevice(device + k % num_devices);
+			hip_check(hipSetDevice(device + k % num_devices));
 
 			wait_barrier(upload_barrier[y]);
 

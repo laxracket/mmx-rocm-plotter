@@ -24,7 +24,7 @@ Node::Node(int device, int num_devices, int final_table, int NSTREAMS)
 
 	for(int i = 0; i < num_devices; ++i) {
 		hipDeviceProp_t info;
-		hipGetDeviceProperties(&info, device + i);
+		hip_check(hipGetDeviceProperties(&info, device + i));
 		if(info.major < 5 || (info.major == 5 && info.minor < 2)) {
 			std::cerr << "GPU[" << device + i << "] '" << info.name << "' is not supported! (need to have CC >= 5.2)" << std::endl;
 			throw std::runtime_error("unsupported GPU");
@@ -59,15 +59,15 @@ Node::Node(int device, int num_devices, int final_table, int NSTREAMS)
 	copy_stream.resize(num_devices);
 
 	for(size_t i = 0; i < streams.size(); ++i) {
-		hipSetDevice(device + i % num_devices);
+		hip_check(hipSetDevice(device + i % num_devices));
 		hip_check(hipStreamCreate(&streams[i]));
 	}
 	for(size_t i = 0; i < copy_stream.size(); ++i) {
-		hipSetDevice(device + i);
+		hip_check(hipSetDevice(device + i));
 		hip_check(hipStreamCreate(&copy_stream[i]));
 	}
 	for(size_t i = 0; i < num_buckets_1; ++i) {
-		hipSetDevice(device + i % num_devices);
+		hip_check(hipSetDevice(device + i % num_devices));
 		stream_barrier[i] = new barrier_t();
 		upload_barrier[i] = new barrier_t();
 		download_barrier[i] = new barrier_t();
@@ -90,7 +90,7 @@ Node::Node(int device, int num_devices, int final_table, int NSTREAMS)
 	bucket_size_buf = new Buffer<uint32_t>[NSTREAMS];
 	bucket_size_out = new Buffer<uint32_t>[NSTREAMS];
 	for(int i = 0; i < NSTREAMS; ++i) {
-		hipSetDevice(device + i % num_devices);
+		hip_check(hipSetDevice(device + i % num_devices));
 		bucket_size_buf[i].alloc(num_buckets_1, MEM_TYPE_PINNED);
 		bucket_size_out[i].alloc(num_buckets_1, MEM_TYPE_DEVICE);
 	}

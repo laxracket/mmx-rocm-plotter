@@ -34,17 +34,17 @@ void mark_used(	uint32_t* B_out, const uint32_t* B_in, const uint64_gpu* PD_in,
 	const uint64_t P_1 = PD >> DSIZE_;
 	const uint64_t P_2 = P_1 + 1 + (PD & DMASK);
 
-//	printf("P = %llu, D = %u\n", P_1, 1 + uint32_t(PD & DMASK));
+//	printf("P = %llu, D = %u\n", (unsigned long long)P_1, 1 + uint32_t(PD & DMASK));
 
 	if(P_1 / 32 < max_field_size) {
 		atomicOr(B_out + (P_1 / 32), uint32_t(1) << (P_1 % 32));
 	} else {
-		printf("mark_used(): P_1 out of range: %llu\n", P_1);
+		printf("mark_used(): P_1 out of range: %llu\n", (unsigned long long)P_1);
 	}
 	if(P_2 / 32 < max_field_size) {
 		atomicOr(B_out + (P_2 / 32), uint32_t(1) << (P_2 % 32));
 	} else {
-		printf("mark_used(): P_2 out of range: %llu\n", P_2);
+		printf("mark_used(): P_2 out of range: %llu\n", (unsigned long long)P_2);
 	}
 }
 
@@ -118,10 +118,10 @@ void remap_pd(	uint64_gpu* PD_out, const uint64_gpu* PD_in,
 		if(j < max_bucket_size + park_size) {
 			PD_out[j] = (uint64_t(P_1_new) << DSIZE_) | D_new;
 		} else {
-			printf("remap_pd(): output overflow: %u\n", j);
+			printf("remap_pd(): output overflow: %llu\n", (unsigned long long)j);
 		}
 	} else {
-		printf("remap_pd(): park_index < park_offset: %u < %u\n", park_index, park_offset);
+		printf("remap_pd(): park_index < park_offset: %u < %u\n", (unsigned)park_index, (unsigned)park_offset);
 	}
 }
 
@@ -361,7 +361,7 @@ void Node::phase2()
 	Buffer<uint32_t> pop_count_host(max_field_size, MEM_TYPE_PINNED);
 
 	for(int i = 0; i < NSTREAMS; ++i) {
-		hipSetDevice(device + i % num_devices);
+		hip_check(hipSetDevice(device + i % num_devices));
 
 		if(is_hdd_plot) {
 			C_in[i].alloc((max_bucket_size_1 + park_size_meta) * N_META_OUT, MEM_TYPE_DEVICE);
@@ -381,7 +381,7 @@ void Node::phase2()
 	}
 
 	for(int i = 0; i < num_devices; ++i) {
-		hipSetDevice(device + i);
+		hip_check(hipSetDevice(device + i));
 
 		bitfield[i].alloc(max_field_size, MEM_TYPE_DEVICE);
 		bitfield_out[i].alloc(max_field_size, num_devices > 1 ? MEM_TYPE_MANAGED : MEM_TYPE_DEVICE);
@@ -484,7 +484,7 @@ void Node::phase2()
 
 		for(int i = 0; i < num_devices; ++i)
 		{
-			hipSetDevice(device + i);
+			hip_check(hipSetDevice(device + i));
 			hip_memset<uint32_t>(bitfield_out[i], 0, streams[i]);
 			hip_check(hipEventRecord(sync_event[i], streams[i]));
 		}
@@ -526,7 +526,7 @@ void Node::phase2()
 			const auto i = k % num_devices;
 			const auto stream = streams[k];
 
-			hipSetDevice(device + i);
+			hip_check(hipSetDevice(device + i));
 
 			wait_barrier(upload_barrier[y]);
 
@@ -551,7 +551,7 @@ void Node::phase2()
 		}
 
 		for(int i = 0; i < num_devices; ++i) {
-			hipSetDevice(device + i);
+			hip_check(hipSetDevice(device + i));
 
 			const auto stream = streams[i];
 
@@ -821,7 +821,7 @@ void Node::phase2()
 //			std::cout << y << ": park_offset_pd = " << park_offset_pd << std::endl;
 //			std::cout << y << ": prev_count_pd = " << prev_count_pd << std::endl;
 
-			hipSetDevice(device + k % num_devices);
+			hip_check(hipSetDevice(device + k % num_devices));
 
 			if(y == 2 * NSTREAMS) {
 				Bucket::block_alloc();	// prevent further RAM usage
@@ -910,7 +910,7 @@ void Node::phase2()
 			}
 			download_buffer(PD_buf[k], PD_parks[k], stream);
 
-			hipEventRecord(download_event[y], stream);
+			hip_check(hipEventRecord(download_event[y], stream));
 
 			if(y >= NSTREAMS) {
 				// wait for previous copy to finish before uploading new data
@@ -972,7 +972,7 @@ void Node::phase2()
 		Buffer<uint64_gpu>* X_buf = new Buffer<uint64_gpu>[NSTREAMS];
 
 		for(int i = 0; i < NSTREAMS; ++i) {
-			hipSetDevice(device + i % num_devices);
+			hip_check(hipSetDevice(device + i % num_devices));
 
 			X_in[i].alloc(cdiv(max_bucket_size_1 * X2BYTES, 8), MEM_TYPE_DEVICE);
 			X_tmp[i].alloc(max_bucket_size_1 + park_size_x, MEM_TYPE_DEVICE);
@@ -1085,7 +1085,7 @@ void Node::phase2()
 			const auto park_offset_x = bucket_offset[y] / park_size_x;
 			const auto prev_count_x = bucket_offset[y] % park_size_x;
 
-			hipSetDevice(device + k % num_devices);
+			hip_check(hipSetDevice(device + k % num_devices));
 
 			wait_barrier(upload_barrier[y]);
 
@@ -1145,7 +1145,7 @@ void Node::phase2()
 			}
 			download_buffer(X_buf[k], X_parks[k], stream);
 
-			hipEventRecord(download_event[y], stream);
+			hip_check(hipEventRecord(download_event[y], stream));
 
 			signal_barrier(stream_barrier[y]);
 		}

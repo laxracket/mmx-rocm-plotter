@@ -131,7 +131,7 @@ public:
 		return count;
 	}
 
-	void free_buffer()
+	void free_buffer() override
 	{
 		for(auto chunk : buf_list) {
 			free_chunk(chunk);

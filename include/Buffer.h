@@ -12,6 +12,7 @@
 #include <cstring>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 
 #include <rocm_runtime_util.h>
 
@@ -144,14 +145,60 @@ public:
 						break;
 					}
 					case MEM_TYPE_PINNED: {
-						hip_check(hipHostMalloc(&ptr_, num_bytes(), 0));
+						// Prefer page-locked host memory for DMA. On ROCm this can fail
+						// (RLIMIT_MEMLOCK, fragmentation, driver limits) even when free()
+						// RAM looks plentiful — fall back to aligned host + hipHostRegister.
+						hipError_t err = hipHostMalloc(&ptr_, num_bytes(), 0);
+						if(err != hipSuccess) {
+							std::cerr << "WARN: hipHostMalloc(" << num_bytes()
+								<< " bytes) failed: " << hipGetErrorString(err)
+								<< " — falling back to aligned host memory" << std::endl;
+							const auto nbytes = num_bytes();
+#ifdef _WIN32
+							data_ = (T*)::malloc(nbytes);
+#else
+							data_ = (T*)::aligned_alloc(MEMORY_ALIGN,
+								nbytes + (MEMORY_ALIGN - nbytes % MEMORY_ALIGN) % MEMORY_ALIGN);
+#endif
+							if(!data_) {
+								throw std::runtime_error("pinned alloc failed and host fallback returned nullptr");
+							}
+							ptr_ = nullptr;
+							type = MEM_TYPE_HOST; // free() via ::free; pin tracked by is_registered_
+							// Best-effort pin for DMA; if register fails, leave pageable
+							// (hipMemcpy still works; is_pinned() follows is_registered_).
+							err = hipHostRegister(data_, nbytes, 0);
+							if(err == hipSuccess) {
+								is_registered_ = true;
+							} else {
+								std::cerr << "WARN: hipHostRegister failed: "
+									<< hipGetErrorString(err)
+									<< " — using pageable host (may slow DMA)" << std::endl;
+							}
+							break;
+						}
 						uint8_t* ptr = (uint8_t*)ptr_;
 #ifndef _WIN32
 						// make sure it's aligned
 						if(num_bytes() >= MEMORY_ALIGN && size_t(ptr) % MEMORY_ALIGN)
 						{
 							hip_check(hipHostFree(ptr_));
-							hip_check(hipHostMalloc(&ptr_, num_bytes() + 4096, 0));
+							err = hipHostMalloc(&ptr_, num_bytes() + 4096, 0);
+							if(err != hipSuccess) {
+								const auto nbytes = num_bytes();
+								data_ = (T*)::aligned_alloc(MEMORY_ALIGN,
+									nbytes + (MEMORY_ALIGN - nbytes % MEMORY_ALIGN) % MEMORY_ALIGN);
+								if(!data_) {
+									throw std::runtime_error("pinned realign failed and host fallback returned nullptr");
+								}
+								ptr_ = nullptr;
+								type = MEM_TYPE_HOST;
+								err = hipHostRegister(data_, nbytes, 0);
+								if(err == hipSuccess) {
+									is_registered_ = true;
+								}
+								break;
+							}
 							ptr = (uint8_t*)ptr_;
 							ptr += (MEMORY_ALIGN - (size_t(ptr) % MEMORY_ALIGN)) % MEMORY_ALIGN;
 						}

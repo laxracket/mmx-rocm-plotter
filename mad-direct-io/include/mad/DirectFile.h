@@ -59,7 +59,6 @@ public:
 	DirectFile(	const std::string& file_path, bool read_flag, bool write_flag, bool create_flag = false,
 				int log_page_size = 12, size_t buffer_size = 1024 * 1024)
 		:	read_flag(read_flag),
-			write_flag(write_flag),
 			log_page_size(log_page_size),
 			page_size(1 << log_page_size),
 			align_mask(page_size - 1),
@@ -245,7 +244,6 @@ protected:
 
 private:
 	bool read_flag;
-	const bool write_flag;
 	const int log_page_size;
 	const uint32_t page_size;
 	const uint32_t align_mask;
