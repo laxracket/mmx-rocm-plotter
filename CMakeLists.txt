@@ -36,7 +36,29 @@ include_directories(${HIP_INCLUDE_DIRS})
 add_compile_definitions(__HIP_PLATFORM_AMD__ _GNU_SOURCE)
 
 set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -Wno-pass-failed")
-set(CMAKE_HIP_ARCHS "gfx1201")
+
+# Allow overriding GPU arch via cmake flag, otherwise try to auto-detect.
+# Usage: cmake -DGPU_ARCH=gfx1100 ..
+# If not set, we try 'hipcc --version' to find the default arch.
+if(DEFINED GPU_ARCH)
+	set(CMAKE_HIP_ARCHS "${GPU_ARCH}")
+elseif(DEFINED ENV{GPU_ARCH})
+	set(CMAKE_HIP_ARCHS "$ENV{GPU_ARCH}")
+else()
+	# Try to auto-detect from rocminfo/hipcc
+	execute_process(
+		COMMAND bash -c "rocminfo 2>/dev/null | grep 'gfx' | head -1 | awk '{print $2}' || echo gfx1201"
+		OUTPUT_VARIABLE DETECTED_ARCH
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	if(DETECTED_ARCH AND DETECTED_ARCH MATCHES "^gfx")
+		set(CMAKE_HIP_ARCHS "${DETECTED_ARCH}")
+		message(STATUS "Auto-detected HIP architecture: ${DETECTED_ARCH}")
+	else()
+		set(CMAKE_HIP_ARCHS "gfx1201")
+		message(STATUS "Using default HIP architecture: gfx1201 (set -DGPU_ARCH=<arch> to override)")
+	endif()
+endif()
 
 if(MSVC)
 	set(MSVC_DEBUG_OPTIONS /Od /FS)
