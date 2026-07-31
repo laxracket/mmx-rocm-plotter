@@ -5,6 +5,7 @@ ROCm (HIP) plotter to create plots for the [MMX](https://github.com/madMAx43v3r/
 ## Requirements
 
 - AMD GPU with ROCm support (developed/tested on gfx1201 / Radeon AI PRO R9700)
+- **RDNA4 architecture only** (gfx120x). Previous-generation GPUs are not supported due to unresolved issues.
 - ROCm 7.x (HIP runtime and compiler)
 - CMake 3.10+, C++17 toolchain
 - Linux (primary)

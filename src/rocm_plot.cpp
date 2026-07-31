@@ -11,6 +11,7 @@
 #include <string>
 #include <csignal>
 #include <cmath>
+#include <cstring>
 
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include <experimental/filesystem>
@@ -291,6 +292,18 @@ int _main(int argc, char** argv)
 	if(device + num_devices > avail_devices) {
 		std::cout << "Invalid -r | --ndevices, not enough devices: " << avail_devices << std::endl;
 		return -2;
+	}
+
+	// Verify all devices are RDNA4 (gfx120x)
+	for(int i = device; i < device + num_devices; ++i) {
+		hipDeviceProp_t prop;
+		hip_check(hipGetDeviceProperties(&prop, i));
+		if(prop.gcnArchName[0] == '\0' || strncmp(prop.gcnArchName, "gfx12", 5) != 0) {
+			std::cout << "Error: GPU " << i << " (" << prop.name << ") is not RDNA4 (gfx120x)." << std::endl;
+			std::cout << "Architecture: " << (prop.gcnArchName[0] == '\0' ? "unknown" : prop.gcnArchName) << std::endl;
+			std::cout << "This application only supports RDNA4 GPUs." << std::endl;
+			return -2;
+		}
 	}
 	if(num_devices < 1 || (num_devices & (num_devices - 1))) {
 		std::cout << "Invalid -r | --ndevices, needs to be a power of two" << std::endl;
